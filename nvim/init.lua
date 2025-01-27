@@ -1,4 +1,4 @@
---[[ini
+--[[
 
 =====================================================================
 ==================== READ THIS BEFORE CONTINUING ====================
@@ -222,6 +222,11 @@ vim.keymap.set('n', '<leader>gs', ':Git status<CR>', { desc = '[G]it [S]tatus' }
 vim.keymap.set('n', '<leader>gi', ':Git init<CR>', { desc = '[G]it [I]nit' })
 vim.keymap.set('n', '<leader>gc', ':Git commit .<CR>', { desc = '[G]it [C]ommit' })
 vim.keymap.set('n', '<leader>gp', ':Git push<CR>', { desc = '[G]it [P]ush To Remote' })
+
+-- Enables [d]elete/[y]ank/[c]hange/etc [a]round [f]unction
+vim.keymap.set('o', 'aF', 'Va{', { noremap = true, silent = true, desc = 'Function Block' })
+vim.keymap.set('x', 'aF', 'Va{', { noremap = true, silent = true, desc = 'Function Block' })
+-- vim.keymap.set({ 'o', 'x' }, 'aF', 'v2jV{Vy', { noremap = true, silent = true, desc = 'Function Block' })
 
 -- [[ Basic Autocommands ]]
 --  See `:help lua-guide-autocommands`
