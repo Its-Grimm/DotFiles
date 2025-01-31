@@ -273,39 +273,107 @@ end
 -- Keymap for toggling the terminal
 vim.keymap.set('n', '<leader>tt', toggle_terminal, { desc = '[T]oggle [T]erminal' })
 
--- Runs C program in an open terminal and deletes the executable
-vim.keymap.set('n', '<leader>cr', function()
-  if not (job_id ~= 0 and terminal_win_id and vim.api.nvim_win_is_valid(terminal_win_id)) then
-    -- If no terminal is open, call the toggle_terminal function
-    toggle_terminal()
+-- Autocommand for running different file types in the terminal
+vim.api.nvim_create_augroup("FileTypeKeymaps", { clear = true })
+
+-- Runs *.c/*.cpp programs and deletes the executable
+vim.api.nvim_create_autocmd("BufReadPost", {
+  group = "FileTypeKeymaps",
+  pattern = { "*.c", "*.cpp" },
+  callback = function()
+    vim.keymap.set('n', '<leader>cr', function()
+      if not (job_id ~= 0 and terminal_win_id and vim.api.nvim_win_is_valid(terminal_win_id)) then
+        toggle_terminal()
+      end
+
+      local file = vim.fn.expand '%'
+      local file_root = vim.fn.expand '%:r'
+      vim.fn.chansend(job_id,
+        { 'gcc ' .. file .. ' -o ' .. file_root .. ' && ./' .. file_root .. ' && rm ./' .. file_root .. '\n' })
+      vim.fn.chansend(job_id, '\n')
+    end, { desc = '[C]ode [R]un With Delete', buffer = true })
   end
+})
 
-  local file = vim.fn.expand '%'
-  local file_root = vim.fn.expand '%:r'
-  vim.fn.chansend(job_id, { 'gcc ' .. file .. ' -o ' .. file_root .. ' && ./' .. file_root .. ' && rm ./' .. file_root .. '\n' })
-  vim.fn.chansend(job_id, '\n')
+-- Runs *.c/*.cpp programs and leaves the executable
+vim.api.nvim_create_autocmd("BufReadPost", {
+  group = "FileTypeKeymaps",
+  pattern = { "*.c", "*.cpp" },
+  callback = function()
+    vim.keymap.set('n', '<leader>cw', function()
+      if not (job_id ~= 0 and terminal_win_id and vim.api.nvim_win_is_valid(terminal_win_id)) then
+        -- If no terminal is open, call the toggle_terminal function
+        toggle_terminal()
+      end
 
-  -- Focus the terminal window and enter terminal mode
-  -- vim.cmd.wincmd 'p'
-  -- vim.cmd.startinsert()
-end, { desc = '[C]ode [R]un With Delete' })
+      local file = vim.fn.expand '%'
+      local file_root = vim.fn.expand '%:r'
+      vim.fn.chansend(job_id, { 'gcc ' .. file .. ' -o ' .. file_root .. ' && ./' .. file_root .. '\n' })
+      vim.fn.chansend(job_id, '\n')
 
--- Runs C program in an open terminal and leaves the executable
-vim.keymap.set('n', '<leader>cw', function()
-  if not (job_id ~= 0 and terminal_win_id and vim.api.nvim_win_is_valid(terminal_win_id)) then
-    -- If no terminal is open, call the toggle_terminal function
-    toggle_terminal()
+      -- Focus the terminal window and enter terminal mode
+      -- vim.cmd.wincmd 'p'
+      -- vim.cmd.startinsert()
+    end, { desc = '[C]ode Run [W]ithout Delete' })
+  end,
+})
+
+-- Runs *.sh scripts
+vim.api.nvim_create_autocmd("BufReadPost", {
+  group = "FileTypeKeymaps",
+  pattern = "*.sh",
+  callback = function()
+    vim.keymap.set('n', '<leader>cr', function()
+      if not (job_id ~= 0 and terminal_win_id and vim.api.nvim_win_is_valid(terminal_win_id)) then
+        toggle_terminal()
+      end
+
+      local file = vim.fn.expand '%'
+      vim.fn.chansend(job_id, { './' .. file .. '\n' })
+      vim.fn.chansend(job_id, '\n')
+    end, { desc = '[C]ode [R]un Shell Script', buffer = true })
   end
+})
 
-  local file = vim.fn.expand '%'
-  local file_root = vim.fn.expand '%:r'
-  vim.fn.chansend(job_id, { 'gcc ' .. file .. ' -o ' .. file_root .. ' && ./' .. file_root .. '\n' })
-  vim.fn.chansend(job_id, '\n')
+-- Runs *.m4 scripts
+vim.api.nvim_create_autocmd("BufReadPost", {
+  group = "FileTypeKeymaps",
+  pattern = "*.m4",
+  callback = function()
+    vim.keymap.set('n', '<leader>cr', function()
+      if not (job_id ~= 0 and terminal_win_id and vim.api.nvim_win_is_valid(terminal_win_id)) then
+        toggle_terminal()
+      end
 
-  -- Focus the terminal window and enter terminal mode
-  -- vim.cmd.wincmd 'p'
-  -- vim.cmd.startinsert()
-end, { desc = '[C]ode Run [W]ithout Delete' })
+      local file = vim.fn.expand '%'
+      vim.fn.chansend(job_id, { 'm4 ' .. file .. '\n' })
+      vim.fn.chansend(job_id, '\n')
+    end, { desc = '[C]ode [R]un M4 Script', buffer = true })
+  end
+})
+
+-- Runs *.m4, compiles into *.s, runs *.s, then deletes *.s and executable
+vim.api.nvim_create_autocmd("BufReadPost", {
+  group = "FileTypeKeymaps",
+  pattern = "*.m4",
+  callback = function()
+    vim.keymap.set('n', '<leader>ca', function()
+      if not (job_id ~= 0 and terminal_win_id and vim.api.nvim_win_is_valid(terminal_win_id)) then
+        toggle_terminal()
+      end
+
+      local file = vim.fn.expand '%'
+      local file_root = vim.fn.expand '%:r'
+
+      vim.fn.chansend(job_id, {
+        -- Essentially: ~$ m4 test.m4 > test.s && gcc -o test test.s && ./test && rm test.s test
+        'm4 ' .. file .. '>' .. file_root .. '.s && gcc '
+        .. file_root .. '.s -o ' .. file_root .. ' && ./' .. file_root .. '&& rm '
+        .. file_root .. '.s && rm ' .. file_root .. '\n' })
+      vim.fn.chansend(job_id, '\n')
+    end, { desc = '[C]ode Run M4 To [A]ssembly Script With Delete', buffer = true })
+  end
+})
 
 -- [[ Install `lazy.nvim` plugin manager ]]
 --    See `:help lazy.nvim.txt` or https://github.com/folke/lazy.nvim for more info
@@ -332,8 +400,8 @@ vim.opt.rtp:prepend(lazypath)
 -- NOTE: Here is where you install your plugins.
 require('lazy').setup({
   -- NOTE: Plugins can be added with a link (or for a github repo: 'owner/repo' link).
-  'tpope/vim-sleuth', -- Detect tabstop and shiftwidth automatically
-  'nvim-tree/nvim-tree.lua', -- Adds a file tree sidebar
+  'tpope/vim-sleuth',         -- Detect tabstop and shiftwidth automatically
+  'nvim-tree/nvim-tree.lua',  -- Adds a file tree sidebar
   'ThePrimeagen/vim-be-good', -- Adds a game to learn vim motions
   'tpope/vim-fugitive',
 
@@ -376,7 +444,7 @@ require('lazy').setup({
   -- after the plugin has been loaded:
   --  config = function() ... end
 
-  { -- Useful plugin to show you pending keybinds.
+  {                     -- Useful plugin to show you pending keybinds.
     'folke/which-key.nvim',
     event = 'VimEnter', -- Sets the loading event to 'VimEnter'
     opts = {
@@ -419,17 +487,17 @@ require('lazy').setup({
 
       -- Document existing key chains
       spec = {
-        { '<leader>c', group = '[C]ode', mode = { 'n', 'x' } },
-        { '<leader>q', group = '[Q]uickfix', mode = { 'n' } },
+        { '<leader>c',  group = '[C]ode',            mode = { 'n', 'x' } },
+        { '<leader>q',  group = '[Q]uickfix',        mode = { 'n' } },
         { '<leader>qg', group = '[Q]uickfix [G]oto', mode = { 'n' } },
-        { '<leader>d', group = '[D]ocument' },
-        { '<leader>o', group = '[O]pen' },
-        { '<leader>r', group = '[R]ename' },
-        { '<leader>s', group = '[S]earch' },
-        { '<leader>w', group = '[W]orkspace' },
-        { '<leader>t', group = '[T]oggle' },
-        { '<leader>g', group = '[G]it', mode = { 'n' } },
-        { '<leader>h', group = 'Git [H]unk', mode = { 'n', 'v' } },
+        { '<leader>d',  group = '[D]ocument' },
+        { '<leader>o',  group = '[O]pen' },
+        { '<leader>r',  group = '[R]ename' },
+        { '<leader>s',  group = '[S]earch' },
+        { '<leader>w',  group = '[W]orkspace' },
+        { '<leader>t',  group = '[T]oggle' },
+        { '<leader>g',  group = '[G]it',             mode = { 'n' } },
+        { '<leader>h',  group = 'Git [H]unk',        mode = { 'n', 'v' } },
       },
     },
   },
@@ -463,7 +531,7 @@ require('lazy').setup({
       { 'nvim-telescope/telescope-ui-select.nvim' },
 
       -- Useful for getting pretty icons, but requires a Nerd Font.
-      { 'nvim-tree/nvim-web-devicons', enabled = vim.g.have_nerd_font },
+      { 'nvim-tree/nvim-web-devicons',            enabled = vim.g.have_nerd_font },
     },
     config = function()
       -- Telescope is a fuzzy finder that comes with a lot of different things that
@@ -574,7 +642,7 @@ require('lazy').setup({
 
       -- Useful status updates for LSP.
       -- NOTE: `opts = {}` is the same as calling `require('fidget').setup({})`
-      { 'j-hui/fidget.nvim', opts = {} },
+      { 'j-hui/fidget.nvim',       opts = {} },
 
       -- Allows extra capabilities provided by nvim-cmp
       'hrsh7th/cmp-nvim-lsp',
