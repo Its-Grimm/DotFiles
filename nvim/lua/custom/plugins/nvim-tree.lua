@@ -6,6 +6,11 @@ return {
     'nvim-tree/nvim-web-devicons',
   },
   config = function()
-    require('nvim-tree').setup {}
+    vim.cmd [[ highlight NvimTreeFolderIcon guifg= #60068C ]] -- changes the folder icon
+    require('nvim-tree').setup {
+      view = {
+        width = 25,
+      },
+    }
   end,
 }
