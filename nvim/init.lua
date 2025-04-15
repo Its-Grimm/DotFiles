@@ -1,5 +1,4 @@
 --[[
-
 =====================================================================
 ==================== READ THIS BEFORE CONTINUING ====================
 =====================================================================
@@ -432,7 +431,7 @@ require('lazy').setup({
   'tpope/vim-sleuth', -- Detect tabstop and shiftwidth automatically
   'nvim-tree/nvim-tree.lua', -- Adds a file tree sidebar
   'ThePrimeagen/vim-be-good', -- Adds a game to learn vim motions
-  'tpope/vim-fugitive',
+  'tpope/vim-fugitive',       -- Vim motion games
 
   -- NOTE: Plugins can also be added by using a table,
   -- with the first argument being the link and the following
@@ -785,6 +784,20 @@ require('lazy').setup({
               end,
             })
           end
+
+          -- Custom autocommand to enable spellchecking for txt files
+          local spell_types = { "text", "plaintex", "typst", "gitcommit", "markdown" }
+          vim.opt.spell = false
+          vim.api.nvim_create_augroup("Spellcheck", { clear = true })
+          vim.api.nvim_create_autocmd({ "FileType" }, {
+            group = "Spellcheck",                             -- Grouping the command for easier management
+            pattern = spell_types,                            -- Only apply to these file types
+            callback = function()
+              vim.opt_local.spell = true                      -- Enable spellcheck for these file types
+            end,
+            desc = "Enable spellcheck for defined filetypes", -- Description for clarity
+          })
+
 
           -- The following code creates a keymap to toggle inlay hints in your
           -- code, if the language server you are using supports them
